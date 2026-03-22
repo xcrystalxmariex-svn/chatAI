@@ -60,7 +60,10 @@ function ChatScreen() {
       await storageService.setCurrentConversation(newConversation.id);
     } catch (error) {
       console.error('Error initializing conversation:', error);
-      Alert.alert('Error', 'Failed to initialize conversation');
+      // Fallback: create an in-memory conversation
+      const fallbackId = 'temp-' + Date.now();
+      setCurrentConversationId(fallbackId);
+      console.log('Using fallback conversation ID:', fallbackId);
     }
   };
 
@@ -93,7 +96,11 @@ function ChatScreen() {
     try {
       setMessages(prev => [...prev, userMessage]);
       if (!skipSave) {
-        await databaseService.saveMessage(userMessage);
+        try {
+          await databaseService.saveMessage(userMessage);
+        } catch (dbError) {
+          console.log('[ChatScreen] Database save failed, continuing anyway:', dbError);
+        }
       }
       setLoading(true);
 
@@ -149,7 +156,11 @@ function ChatScreen() {
         };
 
         setMessages(prev => [...prev, assistantMessage]);
-        await databaseService.saveMessage(assistantMessage);
+        try {
+          await databaseService.saveMessage(assistantMessage);
+        } catch (dbError) {
+          console.log('[ChatScreen] Database save failed for assistant message:', dbError);
+        }
 
         if (voiceConfig.enabled && aiResponse.content) {
           Speech.speak(aiResponse.content, {
