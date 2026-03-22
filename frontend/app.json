@@ -2,7 +2,6 @@
   "expo": {
     "name": "AI Chat Platform",
     "slug": "chatai",
-    "owner": "YOUR_EXPO_USERNAME",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
