@@ -31,6 +31,7 @@ function ChatScreen() {
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const flatListRef = useRef<FlatList>(null);
 
   console.log('[ChatScreen] Render - isConfigured:', isConfigured, 'providerConfig:', providerConfig?.provider);
@@ -160,7 +161,19 @@ function ChatScreen() {
     } catch (error: any) {
       console.error('[ChatScreen] Error sending message:', error);
       console.error('[ChatScreen] Error details:', error.message, error.stack);
-      Alert.alert('Error', error.message || 'Failed to get AI response');
+      const errorMsg = error.message || 'Failed to get AI response';
+      setErrorMessage(errorMsg);
+      Alert.alert('Error', errorMsg);
+      
+      // Add error message to chat
+      const errorChatMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `❌ Error: ${errorMsg}`,
+        timestamp: Date.now(),
+        conversationId: currentConversationId,
+      };
+      setMessages(prev => [...prev, errorChatMessage]);
     } finally {
       setLoading(false);
       console.log('[ChatScreen] handleSendMessage complete');
