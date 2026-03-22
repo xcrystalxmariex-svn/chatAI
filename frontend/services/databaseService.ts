@@ -1,9 +1,14 @@
-import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
 import { Message, Conversation } from '../types';
 
+// Conditional import for SQLite (only on native)
+let SQLite: any = null;
+if (Platform.OS !== 'web') {
+  SQLite = require('expo-sqlite');
+}
+
 class DatabaseService {
-  private db: SQLite.WebSQLDatabase | null = null;
+  private db: any = null;
   private isWeb: boolean = Platform.OS === 'web';
   private webStorage: { conversations: Conversation[]; messages: Message[] } = {
     conversations: [],
@@ -66,8 +71,6 @@ class DatabaseService {
   }
 
   async createConversation(title: string): Promise<Conversation> {
-    if (!this.db) throw new Error('Database not initialized');
-    
     const conversation: Conversation = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       title,
@@ -75,6 +78,13 @@ class DatabaseService {
       updatedAt: Date.now(),
       messageCount: 0,
     };
+
+    if (this.isWeb) {
+      this.webStorage.conversations.push(conversation);
+      return conversation;
+    }
+
+    if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
       this.db!.transaction(tx => {
@@ -87,6 +97,10 @@ class DatabaseService {
   }
 
   async getConversations(): Promise<Conversation[]> {
+    if (this.isWeb) {
+      return [...this.webStorage.conversations].sort((a, b) => b.updatedAt - a.updatedAt);
+    }
+
     if (!this.db) throw new Error('Database not initialized');
     
     return new Promise((resolve, reject) => {
@@ -103,6 +117,10 @@ class DatabaseService {
   }
 
   async getConversation(id: string): Promise<Conversation | null> {
+    if (this.isWeb) {
+      return this.webStorage.conversations.find(c => c.id === id) || null;
+    }
+
     if (!this.db) throw new Error('Database not initialized');
     
     return new Promise((resolve, reject) => {
@@ -119,6 +137,15 @@ class DatabaseService {
   }
 
   async updateConversationTitle(id: string, title: string): Promise<void> {
+    if (this.isWeb) {
+      const conv = this.webStorage.conversations.find(c => c.id === id);
+      if (conv) {
+        conv.title = title;
+        conv.updatedAt = Date.now();
+      }
+      return;
+    }
+
     if (!this.db) throw new Error('Database not initialized');
     
     return new Promise((resolve, reject) => {
@@ -132,6 +159,12 @@ class DatabaseService {
   }
 
   async deleteConversation(id: string): Promise<void> {
+    if (this.isWeb) {
+      this.webStorage.conversations = this.webStorage.conversations.filter(c => c.id !== id);
+      this.webStorage.messages = this.webStorage.messages.filter(m => m.conversationId !== id);
+      return;
+    }
+
     if (!this.db) throw new Error('Database not initialized');
     
     return new Promise((resolve, reject) => {
@@ -143,6 +176,16 @@ class DatabaseService {
   }
 
   async saveMessage(message: Message): Promise<void> {
+    if (this.isWeb) {
+      this.webStorage.messages.push(message);
+      const conv = this.webStorage.conversations.find(c => c.id === message.conversationId);
+      if (conv) {
+        conv.messageCount += 1;
+        conv.updatedAt = Date.now();
+      }
+      return;
+    }
+
     if (!this.db) throw new Error('Database not initialized');
     
     return new Promise((resolve, reject) => {
@@ -160,6 +203,12 @@ class DatabaseService {
   }
 
   async getMessages(conversationId: string): Promise<Message[]> {
+    if (this.isWeb) {
+      return this.webStorage.messages
+        .filter(m => m.conversationId === conversationId)
+        .sort((a, b) => a.timestamp - b.timestamp);
+    }
+
     if (!this.db) throw new Error('Database not initialized');
     
     return new Promise((resolve, reject) => {
@@ -176,6 +225,13 @@ class DatabaseService {
   }
 
   async searchMessages(query: string): Promise<Message[]> {
+    if (this.isWeb) {
+      return this.webStorage.messages
+        .filter(m => m.content.toLowerCase().includes(query.toLowerCase()))
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 50);
+    }
+
     if (!this.db) throw new Error('Database not initialized');
     
     return new Promise((resolve, reject) => {
@@ -192,6 +248,12 @@ class DatabaseService {
   }
 
   async clearAllData(): Promise<void> {
+    if (this.isWeb) {
+      this.webStorage.conversations = [];
+      this.webStorage.messages = [];
+      return;
+    }
+
     if (!this.db) throw new Error('Database not initialized');
     
     return new Promise((resolve, reject) => {

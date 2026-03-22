@@ -11,6 +11,18 @@ config.cacheStores = [
   new FileStore({ root: path.join(root, 'cache') }),
 ];
 
+// Platform-specific module resolution
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Exclude expo-sqlite on web platform
+  if (platform === 'web' && moduleName === 'expo-sqlite') {
+    return {
+      type: 'empty',
+    };
+  }
+  
+  // Default resolution
+  return context.resolveRequest(context, moduleName, platform);
+};
 
 // // Exclude unnecessary directories from file watching
 // config.watchFolders = [__dirname];
