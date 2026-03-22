@@ -24,6 +24,7 @@ class AIService {
       openai: 'https://api.openai.com/v1',
       anthropic: 'https://api.anthropic.com/v1',
       google: 'https://generativelanguage.googleapis.com/v1beta',
+      nvidia: 'https://integrate.api.nvidia.com/v1',
     };
 
     return urls[config.provider] || config.baseUrl || '';
@@ -40,6 +41,7 @@ class AIService {
       
       switch (config.provider) {
         case 'openai':
+        case 'nvidia':
         case 'custom':
           return await this.sendOpenAIMessage(config, messages, baseUrl, onChunk, enableTools);
         case 'anthropic':

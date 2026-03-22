@@ -39,6 +39,7 @@ function SettingsScreen() {
     { value: 'openai', label: 'OpenAI', defaultModel: 'gpt-4o' },
     { value: 'anthropic', label: 'Anthropic', defaultModel: 'claude-3-5-sonnet-20241022' },
     { value: 'google', label: 'Google Gemini', defaultModel: 'gemini-2.0-flash-exp' },
+    { value: 'nvidia', label: 'Nvidia NIM', defaultModel: 'nvidia/llama-3.1-nemotron-70b-instruct' },
     { value: 'custom', label: 'Custom Provider', defaultModel: 'custom-model' },
   ];
 
@@ -158,12 +159,21 @@ function SettingsScreen() {
                 style={styles.input}
                 value={baseUrl}
                 onChangeText={setBaseUrl}
-                placeholder="e.g., https://api.nvidia.com/v1"
+                placeholder="e.g., https://api.custom.com/v1"
                 placeholderTextColor="#666"
                 autoCapitalize="none"
                 keyboardType="url"
               />
             </>
+          )}
+
+          {provider === 'nvidia' && (
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle-outline" size={20} color={uiConfig.primaryColor} />
+              <Text style={[styles.infoText, { color: uiConfig.textColor }]}>
+                Using Nvidia NIM API: https://integrate.api.nvidia.com/v1
+              </Text>
+            </View>
           )}
 
           <Text style={styles.label}>AI Name</Text>
