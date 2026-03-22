@@ -20,6 +20,8 @@ import { ConfigProvider, useConfig } from '../contexts/ConfigContext';
 import databaseService from '../services/databaseService';
 import storageService from '../services/storageService';
 import aiService from '../services/aiService';
+import voiceService from '../services/voiceService';
+import toolsService from '../services/toolsService';
 import { Message } from '../types';
 
 function ChatScreen() {
@@ -27,11 +29,13 @@ function ChatScreen() {
   const { providerConfig, voiceConfig, uiConfig, isConfigured } = useConfig();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [recording, setRecording] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     initializeConversation();
+    toolsService.loadSkills();
   }, []);
 
   const initializeConversation = async () => {
@@ -57,7 +61,7 @@ function ChatScreen() {
     }
   };
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, skipSave = false) => {
     if (!isConfigured || !providerConfig) {
       Alert.alert('Setup Required', 'Please configure your AI provider in Settings', [
         { text: 'Open Settings', onPress: () => router.push('/settings') },
@@ -81,41 +85,179 @@ function ChatScreen() {
 
     try {
       setMessages(prev => [...prev, userMessage]);
-      await databaseService.saveMessage(userMessage);
+      if (!skipSave) {
+        await databaseService.saveMessage(userMessage);
+      }
       setLoading(true);
 
-      const conversationHistory = messages.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      // Get conversation history
+      const conversationHistory = messages.map(msg => {
+        const historyMsg: any = {
+          role: msg.role,
+          content: msg.content,
+        };
+        
+        // Include tool calls if present
+        if (msg.toolCalls) {
+          historyMsg.tool_calls = msg.toolCalls.map(tc => ({
+            id: tc.id,
+            type: 'function',
+            function: {
+              name: tc.name,
+              arguments: tc.arguments,
+            },
+          }));
+        }
+        
+        return historyMsg;
+      });
 
+      // Send message to AI with tool support
       const aiResponse = await aiService.sendMessage(
         providerConfig,
-        [...conversationHistory, { role: 'user', content }]
+        [...conversationHistory, { role: 'user', content }],
+        undefined,
+        true // Enable tools
       );
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: aiResponse,
-        timestamp: Date.now(),
-        conversationId: currentConversationId,
-      };
+      // Check if AI wants to use tools
+      if (aiResponse.toolCalls && aiResponse.toolCalls.length > 0) {
+        // Execute tools and continue conversation
+        await handleToolExecution(aiResponse.toolCalls, conversationHistory);
+      } else {
+        // Regular response - save and display
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: aiResponse.content,
+          timestamp: Date.now(),
+          conversationId: currentConversationId,
+        };
 
-      setMessages(prev => [...prev, assistantMessage]);
-      await databaseService.saveMessage(assistantMessage);
+        setMessages(prev => [...prev, assistantMessage]);
+        await databaseService.saveMessage(assistantMessage);
 
-      if (voiceConfig.enabled) {
-        Speech.speak(aiResponse, {
-          rate: voiceConfig.rate,
-          pitch: voiceConfig.pitch,
-        });
+        if (voiceConfig.enabled && aiResponse.content) {
+          Speech.speak(aiResponse.content, {
+            rate: voiceConfig.rate,
+            pitch: voiceConfig.pitch,
+          });
+        }
       }
     } catch (error: any) {
       console.error('Error sending message:', error);
       Alert.alert('Error', error.message || 'Failed to get AI response');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToolExecution = async (toolCalls: any[], conversationHistory: any[]) => {
+    try {
+      // Show tool execution message
+      const toolMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `🔧 Using tools: ${toolCalls.map(tc => tc.name).join(', ')}`,
+        timestamp: Date.now(),
+        conversationId: currentConversationId!,
+        toolCalls: toolCalls,
+      };
+      
+      setMessages(prev => [...prev, toolMessage]);
+      await databaseService.saveMessage(toolMessage);
+
+      // Execute all tool calls
+      const toolResults = await Promise.all(
+        toolCalls.map(async (toolCall) => {
+          const args = JSON.parse(toolCall.arguments);
+          const result = await toolsService.executeTool(toolCall.name, args);
+          return {
+            role: 'tool',
+            content: result,
+            tool_call_id: toolCall.id,
+          };
+        })
+      );
+
+      // Send tool results back to AI
+      const finalResponse = await aiService.sendMessage(
+        providerConfig!,
+        [
+          ...conversationHistory,
+          {
+            role: 'assistant',
+            content: '',
+            tool_calls: toolCalls.map(tc => ({
+              id: tc.id,
+              type: 'function',
+              function: {
+                name: tc.name,
+                arguments: tc.arguments,
+              },
+            })),
+          },
+          ...toolResults,
+        ],
+        undefined,
+        false // Disable tools for final response
+      );
+
+      // Save final response
+      const finalMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        role: 'assistant',
+        content: finalResponse.content,
+        timestamp: Date.now(),
+        conversationId: currentConversationId!,
+      };
+
+      setMessages(prev => [...prev, finalMessage]);
+      await databaseService.saveMessage(finalMessage);
+
+      if (voiceConfig.enabled && finalResponse.content) {
+        Speech.speak(finalResponse.content, {
+          rate: voiceConfig.rate,
+          pitch: voiceConfig.pitch,
+        });
+      }
+    } catch (error: any) {
+      console.error('Tool execution error:', error);
+      Alert.alert('Error', 'Failed to execute tools');
+    }
+  };
+
+  const handleVoicePress = async () => {
+    if (!providerConfig?.apiKey) {
+      Alert.alert('API Key Required', 'Please configure your OpenAI API key in Settings for voice transcription');
+      return;
+    }
+
+    try {
+      if (recording) {
+        // Stop recording and transcribe
+        setRecording(false);
+        const audioUri = await voiceService.stopRecording();
+        
+        if (audioUri) {
+          setLoading(true);
+          const transcription = await voiceService.transcribeAudio(audioUri, providerConfig.apiKey);
+          setLoading(false);
+          
+          if (transcription) {
+            handleSendMessage(transcription);
+          }
+        }
+      } else {
+        // Start recording
+        await voiceService.startRecording();
+        setRecording(true);
+      }
+    } catch (error: any) {
+      setRecording(false);
+      setLoading(false);
+      console.error('Voice error:', error);
+      Alert.alert('Voice Input Error', error.message || 'Failed to process voice input');
     }
   };
 
@@ -137,8 +279,39 @@ function ChatScreen() {
         const file = result.assets[0];
         const content = await FileSystem.readAsStringAsync(file.uri);
         
-        const contextMessage = `[File: ${file.name}]\n\n${content.substring(0, 5000)}`;
-        handleSendMessage(`I've attached a file. Here's the content:\n\n${contextMessage}`);
+        // Check if it's a skill file (.md)
+        if (file.name.endsWith('.md')) {
+          Alert.alert(
+            'Skill File Detected',
+            'This appears to be a skill file. Would you like to load it as a skill or include it in the conversation?',
+            [
+              {
+                text: 'Load as Skill',
+                onPress: async () => {
+                  try {
+                    const skill = await toolsService.parseSkillFromMarkdown(content, file.name);
+                    await toolsService.saveSkill(skill);
+                    Alert.alert('Success', `Skill "${skill.name}" loaded with ${skill.tools.length} tools`);
+                  } catch (error) {
+                    Alert.alert('Error', 'Failed to parse skill file');
+                  }
+                },
+              },
+              {
+                text: 'Include in Chat',
+                onPress: () => {
+                  const contextMessage = `[File: ${file.name}]\n\n${content.substring(0, 5000)}`;
+                  handleSendMessage(`I've attached a file. Here's the content:\n\n${contextMessage}`);
+                },
+              },
+              { text: 'Cancel', style: 'cancel' },
+            ]
+          );
+        } else {
+          // Regular file - include in conversation
+          const contextMessage = `[File: ${file.name}]\n\n${content.substring(0, 5000)}`;
+          handleSendMessage(`I've attached a file. Here's the content:\n\n${contextMessage}`);
+        }
       }
     } catch (error) {
       console.error('Error picking file:', error);
@@ -196,6 +369,13 @@ function ChatScreen() {
         </TouchableOpacity>
       </View>
 
+      {recording && (
+        <View style={[styles.recordingIndicator, { backgroundColor: '#FF3B30' }]}>
+          <Ionicons name="mic" size={20} color="#fff" />
+          <Text style={styles.recordingText}>Recording... Tap mic to stop</Text>
+        </View>
+      )}
+
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -218,14 +398,19 @@ function ChatScreen() {
             <Text style={[styles.emptyText, { fontSize: uiConfig.fontSize }]}>
               Start a conversation with {providerConfig?.aiName || 'AI'}
             </Text>
+            <Text style={[styles.emptySubtext, { fontSize: uiConfig.fontSize - 2 }]}>
+              ✨ Now with voice input & AI tools
+            </Text>
           </View>
         }
       />
 
       <MessageInput
         onSend={handleSendMessage}
+        onVoicePress={handleVoicePress}
         onFilePress={handleFileAttach}
         disabled={loading}
+        recording={recording}
         primaryColor={uiConfig.primaryColor}
         backgroundColor={uiConfig.backgroundColor}
         textColor={uiConfig.textColor}
@@ -259,6 +444,17 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: 4,
+  },
+  recordingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    gap: 8,
+  },
+  recordingText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   messageList: {
     paddingVertical: 16,
@@ -297,6 +493,11 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#666',
     marginTop: 16,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    color: '#555',
+    marginTop: 8,
     textAlign: 'center',
   },
 });

@@ -15,6 +15,7 @@ interface MessageInputProps {
   onVoicePress?: () => void;
   onFilePress?: () => void;
   disabled?: boolean;
+  recording?: boolean;
   primaryColor: string;
   backgroundColor: string;
   textColor: string;
@@ -26,6 +27,7 @@ export default function MessageInput({
   onVoicePress,
   onFilePress,
   disabled = false,
+  recording = false,
   primaryColor,
   backgroundColor,
   textColor,
@@ -75,11 +77,18 @@ export default function MessageInput({
 
           {onVoicePress && (
             <TouchableOpacity 
-              style={styles.iconButton} 
+              style={[
+                styles.iconButton,
+                recording && { backgroundColor: primaryColor, borderRadius: 20 }
+              ]} 
               onPress={onVoicePress}
               disabled={disabled}
             >
-              <Ionicons name="mic-outline" size={24} color={primaryColor} />
+              <Ionicons 
+                name={recording ? "stop" : "mic-outline"} 
+                size={24} 
+                color={recording ? "#fff" : primaryColor} 
+              />
             </TouchableOpacity>
           )}
 

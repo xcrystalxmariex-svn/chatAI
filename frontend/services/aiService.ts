@@ -1,5 +1,11 @@
 import axios from 'axios';
-import { ProviderConfig } from '../types';
+import { ProviderConfig, ToolCall } from '../types';
+import toolsService from './toolsService';
+
+interface AIResponse {
+  content: string;
+  toolCalls?: ToolCall[];
+}
 
 class AIService {
   private getHeaders(config: ProviderConfig): Record<string, string> {
@@ -25,20 +31,21 @@ class AIService {
 
   async sendMessage(
     config: ProviderConfig,
-    messages: Array<{ role: string; content: string }>,
-    onChunk?: (text: string) => void
-  ): Promise<string> {
+    messages: Array<{ role: string; content: string; tool_calls?: any; tool_call_id?: string }>,
+    onChunk?: (text: string) => void,
+    enableTools: boolean = true
+  ): Promise<AIResponse> {
     try {
       const baseUrl = this.getBaseUrl(config);
       
       switch (config.provider) {
         case 'openai':
         case 'custom':
-          return await this.sendOpenAIMessage(config, messages, baseUrl, onChunk);
+          return await this.sendOpenAIMessage(config, messages, baseUrl, onChunk, enableTools);
         case 'anthropic':
-          return await this.sendAnthropicMessage(config, messages, baseUrl, onChunk);
+          return await this.sendAnthropicMessage(config, messages, baseUrl, onChunk, enableTools);
         case 'google':
-          return await this.sendGoogleMessage(config, messages, baseUrl, onChunk);
+          return await this.sendGoogleMessage(config, messages, baseUrl, onChunk, enableTools);
         default:
           throw new Error(`Unsupported provider: ${config.provider}`);
       }
@@ -50,42 +57,86 @@ class AIService {
 
   private async sendOpenAIMessage(
     config: ProviderConfig,
-    messages: Array<{ role: string; content: string }>,
+    messages: Array<{ role: string; content: string; tool_calls?: any; tool_call_id?: string }>,
     baseUrl: string,
-    onChunk?: (text: string) => void
-  ): Promise<string> {
+    onChunk?: (text: string) => void,
+    enableTools: boolean = true
+  ): Promise<AIResponse> {
     const formattedMessages = [
       { role: 'system', content: config.systemPrompt },
       ...messages,
     ];
 
+    const requestBody: any = {
+      model: config.model,
+      messages: formattedMessages,
+      stream: false,
+    };
+
+    // Add tools if enabled
+    if (enableTools) {
+      const tools = toolsService.getToolsForAPI();
+      if (tools.length > 0) {
+        requestBody.tools = tools;
+        requestBody.tool_choice = 'auto';
+      }
+    }
+
     const response = await axios.post(
       `${baseUrl}/chat/completions`,
-      {
-        model: config.model,
-        messages: formattedMessages,
-        stream: false,
-      },
+      requestBody,
       { headers: this.getHeaders(config) }
     );
 
-    return response.data.choices[0].message.content;
+    const choice = response.data.choices[0];
+    const message = choice.message;
+
+    // Check for tool calls
+    if (message.tool_calls && message.tool_calls.length > 0) {
+      return {
+        content: message.content || '',
+        toolCalls: message.tool_calls.map((tc: any) => ({
+          id: tc.id,
+          name: tc.function.name,
+          arguments: tc.function.arguments,
+        })),
+      };
+    }
+
+    return {
+      content: message.content,
+    };
   }
 
   private async sendAnthropicMessage(
     config: ProviderConfig,
     messages: Array<{ role: string; content: string }>,
     baseUrl: string,
-    onChunk?: (text: string) => void
-  ): Promise<string> {
+    onChunk?: (text: string) => void,
+    enableTools: boolean = true
+  ): Promise<AIResponse> {
+    const requestBody: any = {
+      model: config.model,
+      system: config.systemPrompt,
+      messages: messages,
+      max_tokens: 4096,
+    };
+
+    // Add tools if enabled (Anthropic supports tools too)
+    if (enableTools) {
+      const tools = toolsService.getToolsForAPI();
+      if (tools.length > 0) {
+        requestBody.tools = tools.map((t: any) => ({
+          name: t.function.name,
+          description: t.function.description,
+          input_schema: t.function.parameters,
+        }));
+      }
+    }
+
     const response = await axios.post(
       `${baseUrl}/messages`,
-      {
-        model: config.model,
-        system: config.systemPrompt,
-        messages: messages,
-        max_tokens: 4096,
-      },
+      requestBody,
       {
         headers: {
           ...this.getHeaders(config),
@@ -94,34 +145,81 @@ class AIService {
       }
     );
 
-    return response.data.content[0].text;
+    const content = response.data.content[0];
+    if (content.type === 'tool_use') {
+      return {
+        content: '',
+        toolCalls: [{
+          id: content.id,
+          name: content.name,
+          arguments: JSON.stringify(content.input),
+        }],
+      };
+    }
+
+    return {
+      content: content.text,
+    };
   }
 
   private async sendGoogleMessage(
     config: ProviderConfig,
     messages: Array<{ role: string; content: string }>,
     baseUrl: string,
-    onChunk?: (text: string) => void
-  ): Promise<string> {
+    onChunk?: (text: string) => void,
+    enableTools: boolean = true
+  ): Promise<AIResponse> {
     const formattedMessages = messages.map(msg => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }],
     }));
 
+    const requestBody: any = {
+      system_instruction: {
+        parts: [{ text: config.systemPrompt }]
+      },
+      contents: formattedMessages,
+    };
+
+    // Google supports function calling too
+    if (enableTools) {
+      const tools = toolsService.getToolsForAPI();
+      if (tools.length > 0) {
+        requestBody.tools = [{
+          function_declarations: tools.map((t: any) => ({
+            name: t.function.name,
+            description: t.function.description,
+            parameters: t.function.parameters,
+          })),
+        }];
+      }
+    }
+
     const response = await axios.post(
       `${baseUrl}/models/${config.model}:generateContent?key=${config.apiKey}`,
-      {
-        system_instruction: {
-          parts: [{ text: config.systemPrompt }]
-        },
-        contents: formattedMessages,
-      },
+      requestBody,
       {
         headers: { 'Content-Type': 'application/json' },
       }
     );
 
-    return response.data.candidates[0].content.parts[0].text;
+    const candidate = response.data.candidates[0];
+    const part = candidate.content.parts[0];
+
+    if (part.functionCall) {
+      return {
+        content: '',
+        toolCalls: [{
+          id: Date.now().toString(),
+          name: part.functionCall.name,
+          arguments: JSON.stringify(part.functionCall.args),
+        }],
+      };
+    }
+
+    return {
+      content: part.text,
+    };
   }
 }
 
