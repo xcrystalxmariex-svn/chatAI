@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "AI Chat Platform",
-    "slug": "termuxai",
+    "slug": "chatai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -50,7 +50,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "8c66d499-9494-48a6-9dde-14285dc1da5f"
+        "projectId": "fa121b7f-8038-4b44-b55e-13ea16860a26"
       }
     }
   }
