@@ -82,30 +82,61 @@ class AIService {
       }
     }
 
-    const response = await axios.post(
-      `${baseUrl}/chat/completions`,
-      requestBody,
-      { headers: this.getHeaders(config) }
-    );
+    console.log('[AIService] Sending request to:', `${baseUrl}/chat/completions`);
+    console.log('[AIService] Request body:', JSON.stringify(requestBody, null, 2));
 
-    const choice = response.data.choices[0];
-    const message = choice.message;
+    try {
+      const response = await axios.post(
+        `${baseUrl}/chat/completions`,
+        requestBody,
+        { 
+          headers: this.getHeaders(config),
+          timeout: 60000, // 60 second timeout
+        }
+      );
 
-    // Check for tool calls
-    if (message.tool_calls && message.tool_calls.length > 0) {
+      console.log('[AIService] Response received:', response.status);
+
+      const choice = response.data.choices[0];
+      const message = choice.message;
+
+      // Check for tool calls
+      if (message.tool_calls && message.tool_calls.length > 0) {
+        return {
+          content: message.content || '',
+          toolCalls: message.tool_calls.map((tc: any) => ({
+            id: tc.id,
+            name: tc.function.name,
+            arguments: tc.function.arguments,
+          })),
+        };
+      }
+
       return {
-        content: message.content || '',
-        toolCalls: message.tool_calls.map((tc: any) => ({
-          id: tc.id,
-          name: tc.function.name,
-          arguments: tc.function.arguments,
-        })),
+        content: message.content,
       };
+    } catch (error: any) {
+      console.error('[AIService] Error details:', {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('Request timeout - check your internet connection');
+      }
+      
+      if (error.response) {
+        throw new Error(`API Error (${error.response.status}): ${error.response.data?.error?.message || error.response.data?.message || 'Unknown error'}`);
+      }
+      
+      if (error.request) {
+        throw new Error('Network error - cannot reach API. Check your internet connection and API endpoint.');
+      }
+      
+      throw error;
     }
-
-    return {
-      content: message.content,
-    };
   }
 
   private async sendAnthropicMessage(
