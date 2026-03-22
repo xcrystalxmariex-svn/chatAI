@@ -64,7 +64,10 @@ function ChatScreen() {
   };
 
   const handleSendMessage = async (content: string, skipSave = false) => {
+    console.log('[ChatScreen] handleSendMessage called with:', content);
+    
     if (!isConfigured || !providerConfig) {
+      console.log('[ChatScreen] Not configured, showing alert');
       Alert.alert('Setup Required', 'Please configure your AI provider in Settings', [
         { text: 'Open Settings', onPress: () => router.push('/settings') },
         { text: 'Cancel', style: 'cancel' },
@@ -77,6 +80,7 @@ function ChatScreen() {
       return;
     }
 
+    console.log('[ChatScreen] Creating user message...');
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -91,6 +95,8 @@ function ChatScreen() {
         await databaseService.saveMessage(userMessage);
       }
       setLoading(true);
+
+      console.log('[ChatScreen] Sending to AI with provider:', providerConfig.provider, 'model:', providerConfig.model);
 
       // Get conversation history
       const conversationHistory = messages.map(msg => {
@@ -115,6 +121,7 @@ function ChatScreen() {
       });
 
       // Send message to AI with tool support
+      console.log('[ChatScreen] Calling aiService.sendMessage...');
       const aiResponse = await aiService.sendMessage(
         providerConfig,
         [...conversationHistory, { role: 'user', content }],
@@ -122,12 +129,16 @@ function ChatScreen() {
         true // Enable tools
       );
 
+      console.log('[ChatScreen] Got AI response:', aiResponse);
+
       // Check if AI wants to use tools
       if (aiResponse.toolCalls && aiResponse.toolCalls.length > 0) {
+        console.log('[ChatScreen] AI wants to use tools:', aiResponse.toolCalls);
         // Execute tools and continue conversation
         await handleToolExecution(aiResponse.toolCalls, conversationHistory);
       } else {
         // Regular response - save and display
+        console.log('[ChatScreen] Regular response, saving...');
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
@@ -147,10 +158,12 @@ function ChatScreen() {
         }
       }
     } catch (error: any) {
-      console.error('Error sending message:', error);
+      console.error('[ChatScreen] Error sending message:', error);
+      console.error('[ChatScreen] Error details:', error.message, error.stack);
       Alert.alert('Error', error.message || 'Failed to get AI response');
     } finally {
       setLoading(false);
+      console.log('[ChatScreen] handleSendMessage complete');
     }
   };
 

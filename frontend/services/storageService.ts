@@ -11,19 +11,23 @@ const STORAGE_KEYS = {
 class StorageService {
   async saveProviderConfig(config: ProviderConfig): Promise<void> {
     try {
+      console.log('[StorageService] Saving provider config:', config);
       await AsyncStorage.setItem(STORAGE_KEYS.PROVIDER_CONFIG, JSON.stringify(config));
+      console.log('[StorageService] Provider config saved successfully');
     } catch (error) {
-      console.error('Error saving provider config:', error);
+      console.error('[StorageService] Error saving provider config:', error);
       throw error;
     }
   }
 
   async getProviderConfig(): Promise<ProviderConfig | null> {
     try {
+      console.log('[StorageService] Getting provider config...');
       const config = await AsyncStorage.getItem(STORAGE_KEYS.PROVIDER_CONFIG);
+      console.log('[StorageService] Got provider config:', config ? 'exists' : 'null');
       return config ? JSON.parse(config) : null;
     } catch (error) {
-      console.error('Error getting provider config:', error);
+      console.error('[StorageService] Error getting provider config:', error);
       return null;
     }
   }
