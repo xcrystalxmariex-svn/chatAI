@@ -50,7 +50,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "YOUR_PROJECT_ID_HERE"
+        "projectId": "create-this-on-expo-dev"
       }
     }
   }
