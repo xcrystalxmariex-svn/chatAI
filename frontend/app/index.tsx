@@ -421,11 +421,7 @@ function ChatScreen() {
 }
 
 export default function Index() {
-  return (
-    <ConfigProvider>
-      <ChatScreen />
-    </ConfigProvider>
-  );
+  return <ChatScreen />;
 }
 
 const styles = StyleSheet.create({

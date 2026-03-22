@@ -165,11 +165,7 @@ function ConversationsScreen() {
 }
 
 export default function Conversations() {
-  return (
-    <ConfigProvider>
-      <ConversationsScreen />
-    </ConfigProvider>
-  );
+  return <ConversationsScreen />;
 }
 
 const styles = StyleSheet.create({

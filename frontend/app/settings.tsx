@@ -268,11 +268,7 @@ function SettingsScreen() {
 }
 
 export default function Settings() {
-  return (
-    <ConfigProvider>
-      <SettingsScreen />
-    </ConfigProvider>
-  );
+  return <SettingsScreen />;
 }
 
 const styles = StyleSheet.create({
