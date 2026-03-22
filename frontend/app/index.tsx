@@ -33,6 +33,8 @@ function ChatScreen() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
+  console.log('[ChatScreen] Render - isConfigured:', isConfigured, 'providerConfig:', providerConfig?.provider);
+
   useEffect(() => {
     initializeConversation();
     toolsService.loadSkills();

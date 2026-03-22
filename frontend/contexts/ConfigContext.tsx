@@ -60,9 +60,11 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProviderConfig = async (config: ProviderConfig) => {
+    console.log('[ConfigContext] Saving provider config:', config);
     await storageService.saveProviderConfig(config);
     setProviderConfig(config);
     setIsConfigured(true);
+    console.log('[ConfigContext] Provider config saved, isConfigured:', true);
   };
 
   const updateVoiceConfig = async (config: VoiceConfig) => {

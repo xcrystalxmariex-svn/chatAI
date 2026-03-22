@@ -89,8 +89,12 @@ function SettingsScreen() {
         fontSize: parseInt(fontSize) || 16,
       });
 
-      Alert.alert('Success', 'Settings saved successfully');
-      router.back();
+      Alert.alert('Success', 'Settings saved successfully', [
+        { 
+          text: 'OK', 
+          onPress: () => router.replace('/') 
+        }
+      ]);
     } catch (error) {
       console.error('Error saving settings:', error);
       Alert.alert('Error', 'Failed to save settings');
