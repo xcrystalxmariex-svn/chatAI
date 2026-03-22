@@ -1,21 +1,23 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "AI Chat Platform",
+    "slug": "ai-chat-platform",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "aichat",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.aichat.platform",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Record voice messages for AI chat",
         "NSSpeechRecognitionUsageDescription": "Convert speech to text"
       }
     },
     "android": {
+      "package": "com.aichat.platform",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000"
@@ -45,6 +47,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_PROJECT_ID_HERE"
+      }
     }
   }
 }
