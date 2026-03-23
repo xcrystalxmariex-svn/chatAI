@@ -4,8 +4,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,12 +41,8 @@ export default function MessageInput({
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
-      <View style={[styles.container, { backgroundColor: backgroundColor }]}>
-        <View style={styles.inputContainer}>
+    <View style={[styles.container, { backgroundColor: backgroundColor }]}>
+      <View style={styles.inputContainer}>
           {onFilePress && (
             <TouchableOpacity 
               style={styles.iconButton} 
@@ -105,7 +99,7 @@ export default function MessageInput({
           </TouchableOpacity>
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

@@ -396,65 +396,71 @@ function ChatScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: uiConfig.backgroundColor }]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleNewConversation} style={styles.headerButton}>
-          <Ionicons name="add-circle-outline" size={28} color={uiConfig.primaryColor} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/conversations')} style={styles.headerButton}>
-          <Ionicons name="chatbubbles-outline" size={28} color={uiConfig.primaryColor} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/settings')} style={styles.headerButton}>
-          <Ionicons name="settings-outline" size={28} color={uiConfig.primaryColor} />
-        </TouchableOpacity>
-      </View>
-
-      {recording && (
-        <View style={[styles.recordingIndicator, { backgroundColor: '#FF3B30' }]}>
-          <Ionicons name="mic" size={20} color="#fff" />
-          <Text style={styles.recordingText}>Recording... Tap mic to stop</Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleNewConversation} style={styles.headerButton}>
+            <Ionicons name="add-circle-outline" size={28} color={uiConfig.primaryColor} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/conversations')} style={styles.headerButton}>
+            <Ionicons name="chatbubbles-outline" size={28} color={uiConfig.primaryColor} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/settings')} style={styles.headerButton}>
+            <Ionicons name="settings-outline" size={28} color={uiConfig.primaryColor} />
+          </TouchableOpacity>
         </View>
-      )}
 
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <ChatMessage
-            message={item}
-            aiName={providerConfig?.aiName || 'AI'}
-            onSpeak={() => handleSpeak(item.content)}
-            primaryColor={uiConfig.primaryColor}
-            textColor={uiConfig.textColor}
-            fontSize={uiConfig.fontSize}
-          />
-        )}
-        contentContainerStyle={styles.messageList}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="chatbubble-outline" size={64} color="#444" />
-            <Text style={[styles.emptyText, { fontSize: uiConfig.fontSize }]}>
-              Start a conversation with {providerConfig?.aiName || 'AI'}
-            </Text>
-            <Text style={[styles.emptySubtext, { fontSize: uiConfig.fontSize - 2 }]}>
-              ✨ Now with voice input & AI tools
-            </Text>
+        {recording && (
+          <View style={[styles.recordingIndicator, { backgroundColor: '#FF3B30' }]}>
+            <Ionicons name="mic" size={20} color="#fff" />
+            <Text style={styles.recordingText}>Recording... Tap mic to stop</Text>
           </View>
-        }
-      />
+        )}
 
-      <MessageInput
-        onSend={handleSendMessage}
-        onVoicePress={handleVoicePress}
-        onFilePress={handleFileAttach}
-        disabled={loading}
-        recording={recording}
-        primaryColor={uiConfig.primaryColor}
-        backgroundColor={uiConfig.backgroundColor}
-        textColor={uiConfig.textColor}
-        fontSize={uiConfig.fontSize}
-      />
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => (
+            <ChatMessage
+              message={item}
+              aiName={providerConfig?.aiName || 'AI'}
+              onSpeak={() => handleSpeak(item.content)}
+              primaryColor={uiConfig.primaryColor}
+              textColor={uiConfig.textColor}
+              fontSize={uiConfig.fontSize}
+            />
+          )}
+          contentContainerStyle={styles.messageList}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="chatbubble-outline" size={64} color="#444" />
+              <Text style={[styles.emptyText, { fontSize: uiConfig.fontSize }]}>
+                Start a conversation with {providerConfig?.aiName || 'AI'}
+              </Text>
+              <Text style={[styles.emptySubtext, { fontSize: uiConfig.fontSize - 2 }]}>
+                ✨ Now with voice input & AI tools
+              </Text>
+            </View>
+          }
+        />
+
+        <MessageInput
+          onSend={handleSendMessage}
+          onVoicePress={handleVoicePress}
+          onFilePress={handleFileAttach}
+          disabled={loading}
+          recording={recording}
+          primaryColor={uiConfig.primaryColor}
+          backgroundColor={uiConfig.backgroundColor}
+          textColor={uiConfig.textColor}
+          fontSize={uiConfig.fontSize}
+        />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
