@@ -1,9 +1,6 @@
 import { Platform } from 'react-native';
 import { Message, Conversation } from '../types';
 
-// Conditional import for SQLite (only on native)
-const SQLite = Platform.OS !== 'web' ? require('expo-sqlite') : null;
-
 class DatabaseService {
   private db: any = null;
   private isWeb: boolean = Platform.OS === 'web';
@@ -13,12 +10,11 @@ class DatabaseService {
   };
 
   async init(): Promise<void> {
-    if (this.isWeb || !SQLite) {
-      console.warn('📱 SQLite not supported on web - using in-memory storage. Deploy as APK for full functionality.');
-      // Initialize with a default conversation for web preview
+    if (this.isWeb) {
+      console.log('Using in-memory storage for web');
       this.webStorage.conversations = [{
         id: 'default',
-        title: 'Web Preview Conversation',
+        title: 'Conversation',
         createdAt: Date.now(),
         updatedAt: Date.now(),
         messageCount: 0,
@@ -27,6 +23,7 @@ class DatabaseService {
     }
 
     try {
+      const SQLite = require('expo-sqlite');
       this.db = SQLite.openDatabase('aichat.db');
       
       return new Promise((resolve, reject) => {

@@ -57,7 +57,7 @@ class VoiceService {
     try {
       // Read audio file as base64
       const audioBase64 = await FileSystem.readAsStringAsync(audioUri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64',
       });
 
       // Create form data
