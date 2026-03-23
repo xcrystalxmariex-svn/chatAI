@@ -42,6 +42,12 @@ export default function RootLayout() {
             title: 'Conversations',
           }} 
         />
+        <Stack.Screen 
+          name="skills" 
+          options={{ 
+            title: 'Skills & Tools',
+          }} 
+        />
       </Stack>
     </ConfigProvider>
   );

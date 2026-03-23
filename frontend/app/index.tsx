@@ -381,7 +381,7 @@ function ChatScreen() {
           <Text style={[styles.setupAuthor, { color: '#666', fontSize: uiConfig.fontSize - 2 }]}>
             by : SVN
           </Text>
-          <Text style={[styles.setupText, { color: '#888', fontSize: uiConfig.fontSize, marginTop: 24 }]}>
+          <Text style={[styles.setupText, { color: '#888', fontSize: uiConfig.fontSize }]}>
             Configure your AI provider to get started
           </Text>
           <TouchableOpacity
@@ -392,9 +392,11 @@ function ChatScreen() {
               Open Settings
             </Text>
           </TouchableOpacity>
-          <Text style={[styles.versionText, { color: '#555', fontSize: uiConfig.fontSize - 4 }]}>
-            v 2.0.0 (beta)
-          </Text>
+          <View style={styles.versionContainer}>
+            <Text style={[styles.versionText, { color: '#555', fontSize: uiConfig.fontSize - 4 }]}>
+              v 2.0.0 (beta)
+            </Text>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -413,6 +415,9 @@ function ChatScreen() {
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/conversations')} style={styles.headerButton}>
             <Ionicons name="chatbubbles-outline" size={28} color={uiConfig.primaryColor} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/skills')} style={styles.headerButton}>
+            <Ionicons name="book-outline" size={28} color={uiConfig.primaryColor} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/settings')} style={styles.headerButton}>
             <Ionicons name="settings-outline" size={28} color={uiConfig.primaryColor} />
@@ -521,24 +526,27 @@ const styles = StyleSheet.create({
   },
   setupAuthor: {
     fontStyle: 'italic',
-    marginBottom: 8,
+    marginBottom: 24,
   },
   setupText: {
     textAlign: 'center',
+    marginBottom: 24,
   },
   setupButton: {
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
-    marginTop: 24,
   },
   setupButtonText: {
     color: '#fff',
     fontWeight: '600',
   },
-  versionText: {
+  versionContainer: {
     position: 'absolute',
     bottom: 40,
+    alignSelf: 'center',
+  },
+  versionText: {
     textAlign: 'center',
     fontFamily: 'monospace',
   },
