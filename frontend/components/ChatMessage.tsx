@@ -31,7 +31,10 @@ export default function ChatMessage({
         <Text style={[styles.name, { fontSize: fontSize - 2, color: '#aaa' }]}>
           {isUser ? 'You' : aiName}
         </Text>
-        <Text style={[styles.content, { fontSize, color: textColor }]}>
+        <Text 
+          style={[styles.content, { fontSize, color: textColor }]}
+          selectable={true}
+        >
           {message.content}
         </Text>
         {!isUser && onSpeak && (
