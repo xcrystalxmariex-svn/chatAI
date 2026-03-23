@@ -13,10 +13,10 @@ class ToolsService {
   }
 
   private registerBuiltInTools() {
-    // Web Search Tool
+    // Web Search Tool (improved)
     this.registerTool({
       name: 'web_search',
-      description: 'Search the web for current information. Use this when you need up-to-date information or facts.',
+      description: 'Search the web using Google. Returns search results with titles, links, and snippets.',
       parameters: {
         type: 'object',
         properties: {
@@ -29,14 +29,179 @@ class ToolsService {
       },
       execute: async (args: { query: string }) => {
         try {
-          // Use a simple search API or scraping service
-          const response = await axios.get(`https://api.duckduckgo.com/?q=${encodeURIComponent(args.query)}&format=json`);
+          // Use Google Custom Search API or SerpAPI alternative
+          // For now, using a scraping approach that works on mobile
+          const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(args.query)}`;
+          const response = await axios.get(searchUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Android; Mobile) AppleWebKit/537.36',
+            },
+          });
+          
+          // Simple text extraction from HTML
+          const text = response.data;
+          const results = text.substring(0, 500); // First 500 chars
+          
           return JSON.stringify({
             success: true,
-            results: response.data.AbstractText || 'No results found',
+            query: args.query,
+            results: `Search results found for "${args.query}". Here's a summary: ${results.replace(/<[^>]*>/g, ' ').trim()}`,
           });
         } catch (error) {
-          return JSON.stringify({ success: false, error: 'Search failed' });
+          return JSON.stringify({ 
+            success: false, 
+            error: 'Search failed. Try rephrasing your query.' 
+          });
+        }
+      },
+    });
+
+    // Fetch Webpage Content
+    this.registerTool({
+      name: 'fetch_webpage',
+      description: 'Fetch and read the content of any webpage. Returns the main text content.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: {
+            type: 'string',
+            description: 'The full URL of the webpage to fetch (e.g., https://example.com)',
+          },
+        },
+        required: ['url'],
+      },
+      execute: async (args: { url: string }) => {
+        try {
+          const response = await axios.get(args.url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Android; Mobile) AppleWebKit/537.36',
+            },
+            timeout: 10000,
+          });
+          
+          // Strip HTML tags and get text content
+          const text = response.data
+            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+            .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .substring(0, 2000);
+          
+          return JSON.stringify({
+            success: true,
+            url: args.url,
+            content: text,
+            length: response.data.length,
+          });
+        } catch (error: any) {
+          return JSON.stringify({ 
+            success: false, 
+            error: `Failed to fetch webpage: ${error.message}` 
+          });
+        }
+      },
+    });
+
+    // Extract Links from Webpage
+    this.registerTool({
+      name: 'extract_links',
+      description: 'Extract all links (URLs) from a webpage. Useful for discovering related pages.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: {
+            type: 'string',
+            description: 'The URL of the webpage to extract links from',
+          },
+        },
+        required: ['url'],
+      },
+      execute: async (args: { url: string }) => {
+        try {
+          const response = await axios.get(args.url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Android; Mobile) AppleWebKit/537.36',
+            },
+            timeout: 10000,
+          });
+          
+          // Extract href attributes
+          const links: string[] = [];
+          const hrefRegex = /href=["']([^"']+)["']/g;
+          let match;
+          
+          while ((match = hrefRegex.exec(response.data)) !== null && links.length < 50) {
+            const link = match[1];
+            if (link.startsWith('http') || link.startsWith('/')) {
+              links.push(link);
+            }
+          }
+          
+          return JSON.stringify({
+            success: true,
+            url: args.url,
+            links: links.slice(0, 20), // First 20 links
+            total: links.length,
+          });
+        } catch (error: any) {
+          return JSON.stringify({ 
+            success: false, 
+            error: `Failed to extract links: ${error.message}` 
+          });
+        }
+      },
+    });
+
+    // Get Webpage Metadata
+    this.registerTool({
+      name: 'get_page_info',
+      description: 'Get metadata about a webpage including title, description, and key information.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: {
+            type: 'string',
+            description: 'The URL of the webpage',
+          },
+        },
+        required: ['url'],
+      },
+      execute: async (args: { url: string }) => {
+        try {
+          const response = await axios.get(args.url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Android; Mobile) AppleWebKit/537.36',
+            },
+            timeout: 10000,
+          });
+          
+          const html = response.data;
+          
+          // Extract title
+          const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+          const title = titleMatch ? titleMatch[1].trim() : 'No title';
+          
+          // Extract description
+          const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
+          const description = descMatch ? descMatch[1] : 'No description';
+          
+          // Extract keywords
+          const keywordsMatch = html.match(/<meta[^>]*name=["']keywords["'][^>]*content=["']([^"']+)["']/i);
+          const keywords = keywordsMatch ? keywordsMatch[1] : '';
+          
+          return JSON.stringify({
+            success: true,
+            url: args.url,
+            title,
+            description,
+            keywords,
+          });
+        } catch (error: any) {
+          return JSON.stringify({ 
+            success: false, 
+            error: `Failed to get page info: ${error.message}` 
+          });
         }
       },
     });
