@@ -9,30 +9,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.7] - 2026-03-23
 
-### 🔧 Bug Fixes & Improvements
+### 🌐 Major Update: Advanced Web Browsing Agent
 
-#### Fixed
-- **Chat 404 API Error**: Reverted tool execution format to proper OpenAI tool calling protocol (was broken in main branch)
-- **Tool Loop Prevention**: Added rate limiting to prevent tools from executing infinitely
-- **Database Save Errors**: Added try-catch blocks to prevent crashes when SQLite operations fail
+This release transforms the AI into a full web browsing agent capable of navigating, reading, and interacting with websites.
 
-#### Improved Web Tools
-- **Enhanced web_search**: Now uses DuckDuckGo Instant Answer API first for faster responses, with HTML scraping fallback
-- **Better fetch_webpage**: Improved content extraction prioritizing article/main tags, better HTML cleanup
-- **Robust error handling**: All tools now return structured error responses instead of crashing
+### ✨ New Web Browsing Tools
 
-#### New Tools
-- **convert_units**: Convert between common units (length, weight, temperature, time)
-  - Length: km, mi, m, ft, cm, in
-  - Weight: kg, lb, g, oz
-  - Temperature: C, F, K
-  - Time: hr, min, sec
+#### Core Browsing
+- **browse_webpage**: Navigate to any URL and load page content, links, and forms
+- **click_link**: Click links on the current page by index or text search
+- **read_page_content**: Get full text content of loaded pages with section search
+- **search_in_page**: Find specific text within the current webpage
+- **go_back**: Navigate back in browsing history
+- **get_browser_status**: Check current session state
 
-#### Technical Changes
-- Added `resetToolTracker()` method to clear rate limits on new conversations
-- Added `canExecuteTool()` rate limiting (max 3 executions per tool per minute)
-- Improved logging throughout tool execution pipeline
-- Better TypeScript error handling
+#### Form Interaction
+- **submit_form**: Submit forms with field values (supports GET and POST)
+- Form detection with field name extraction
+- Search form handling for sites like Moltbook
+
+### 🔧 Improvements
+
+#### Tool Loop Prevention
+- Added rate limiting (max 5 executions per tool per minute)
+- Execution window tracking to prevent infinite loops
+- `resetToolTracker()` clears limits on new conversations
+
+#### Enhanced Skill Parser
+- Improved markdown parsing for .md skill files
+- Support for parameter definitions with types and required flags
+- Format: `- paramName (type, required): description`
+- Auto-generates tool executors for custom skills
+
+#### Web Search
+- DuckDuckGo Instant Answer API for quick facts
+- HTML scraping fallback with better result extraction
+- Related topics and source URLs in responses
+
+### 🐛 Bug Fixes
+- Fixed 404 API error from broken tool calling protocol
+- Added try-catch around database operations
+- Better error messages shown in chat instead of alerts
+
+### 📝 Skill File Format
+
+```markdown
+# My Custom Skill
+
+## Description
+Description of what this skill does.
+
+## Tool: Search Database
+Searches the database for records.
+
+### Parameters
+- query (string, required): The search query
+- limit (number): Max results to return
+```
 
 ---
 

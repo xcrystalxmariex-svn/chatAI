@@ -58,6 +58,15 @@ AI Chat Platform is a comprehensive mobile AI assistant built with React Native 
 - 🔄 **Multi-step Reasoning**: AI chains multiple tools together
 - ⚡ **Auto-execution**: Seamless tool invocation without user intervention
 
+### Web Browsing Agent (v2.0.7)
+- 🌐 **Full Web Browsing**: Navigate to any webpage and read content
+- 🔗 **Link Navigation**: Click links by index or text search
+- 📝 **Form Submission**: Fill and submit web forms (search, login, etc.)
+- 🔍 **In-Page Search**: Find specific content within loaded pages
+- 📜 **Browsing History**: Go back to previous pages
+- 🎯 **Session Management**: Maintains browsing state across interactions
+- 📊 **Structured Extraction**: Extracts titles, links, forms, and content
+
 ### File Handling
 - 📎 **File Attachments**: Support for text, PDF, and markdown files
 - 📖 **Context Injection**: Automatically include file content in conversations
@@ -177,6 +186,8 @@ AI automatically uses tools when needed. Just ask naturally:
 - "What time is it?" → Uses `get_current_time` tool
 - "Calculate 156 × 23" → Uses `calculate` tool
 - "Search for latest AI news" → Uses `web_search` tool
+- "Go to moltbook.com and show me the homepage" → Uses `browse_webpage` tool
+- "Click on the login link" → Uses `click_link` tool
 
 ### Loading Skills
 1. **Tap attachment** icon
@@ -188,13 +199,65 @@ AI automatically uses tools when needed. Just ask naturally:
 
 ## 🛠️ Built-in Tools
 
+### Web Browsing Tools
 | Tool Name | Purpose | Parameters |
 |-----------|---------|------------|
-| `web_search` | Search the web for current information | query: string |
+| `browse_webpage` | Navigate to and load a webpage | url: string |
+| `click_link` | Click a link on current page | linkIndex: number OR linkText: string |
+| `read_page_content` | Get full content of loaded page | section?: string |
+| `search_in_page` | Search for text in current page | query: string |
+| `submit_form` | Submit a form with values | formIndex: number, fields: object |
+| `go_back` | Go back in browsing history | none |
+| `get_browser_status` | Get current session state | none |
+
+### Utility Tools
+| Tool Name | Purpose | Parameters |
+|-----------|---------|------------|
+| `web_search` | Search the web via DuckDuckGo | query: string |
 | `get_current_time` | Get current date and time | none |
-| `calculate` | Evaluate mathematical expressions | expression: string |
+| `calculate` | Evaluate math expressions | expression: string |
+| `convert_units` | Convert between units | value, from, to |
 
 *More tools can be added via .md skill files*
+
+---
+
+## 📝 Creating Custom Skills
+
+Skills are defined in Markdown files that teach the AI new capabilities. Load them by attaching a `.md` file and selecting "Load as Skill".
+
+### Skill File Format
+
+```markdown
+# My Custom Skill
+
+## Description
+A brief description of what this skill does.
+
+## Tool: Tool Name Here
+Description of what this tool does and when to use it.
+
+### Parameters
+- paramName (string, required): Description of this parameter
+- optionalParam (number): An optional parameter with default behavior
+
+## Tool: Another Tool
+Another tool in the same skill pack.
+
+### Parameters
+- query (string, required): The search query
+```
+
+### Parameter Types
+- `string` - Text input
+- `number` - Numeric input  
+- `boolean` - True/false
+- Add `required` to make a parameter mandatory
+
+### Example Skills
+See `/frontend/assets/example-skills/` for complete examples:
+- `web-research.md` - Research and fact-checking tools
+- `moltbook-assistant.md` - Social platform navigation
 
 ---
 
