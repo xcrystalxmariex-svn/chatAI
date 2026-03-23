@@ -98,7 +98,6 @@ export default function MessageInput({
             )}
           </TouchableOpacity>
         </View>
-      </View>
     </View>
   );
 }
