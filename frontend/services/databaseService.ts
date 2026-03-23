@@ -2,10 +2,7 @@ import { Platform } from 'react-native';
 import { Message, Conversation } from '../types';
 
 // Conditional import for SQLite (only on native)
-let SQLite: any = null;
-if (Platform.OS !== 'web') {
-  SQLite = require('expo-sqlite');
-}
+const SQLite = Platform.OS !== 'web' ? require('expo-sqlite') : null;
 
 class DatabaseService {
   private db: any = null;
@@ -16,7 +13,7 @@ class DatabaseService {
   };
 
   async init(): Promise<void> {
-    if (this.isWeb) {
+    if (this.isWeb || !SQLite) {
       console.warn('📱 SQLite not supported on web - using in-memory storage. Deploy as APK for full functionality.');
       // Initialize with a default conversation for web preview
       this.webStorage.conversations = [{
