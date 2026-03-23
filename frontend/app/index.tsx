@@ -374,11 +374,14 @@ function ChatScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: uiConfig.backgroundColor }]}>
         <View style={styles.setupContainer}>
-          <Ionicons name="settings-outline" size={64} color={uiConfig.primaryColor} />
-          <Text style={[styles.setupTitle, { color: uiConfig.textColor, fontSize: uiConfig.fontSize + 8 }]}>
-            Welcome to AI Chat
+          <Ionicons name="chatbubble-ellipses" size={80} color={uiConfig.primaryColor} />
+          <Text style={[styles.setupTitle, { color: uiConfig.textColor, fontSize: uiConfig.fontSize + 12 }]}>
+            chatAI
           </Text>
-          <Text style={[styles.setupText, { color: '#888', fontSize: uiConfig.fontSize }]}>
+          <Text style={[styles.setupAuthor, { color: '#666', fontSize: uiConfig.fontSize - 2 }]}>
+            by : SVN
+          </Text>
+          <Text style={[styles.setupText, { color: '#888', fontSize: uiConfig.fontSize, marginTop: 24 }]}>
             Configure your AI provider to get started
           </Text>
           <TouchableOpacity
@@ -389,6 +392,9 @@ function ChatScreen() {
               Open Settings
             </Text>
           </TouchableOpacity>
+          <Text style={[styles.versionText, { color: '#555', fontSize: uiConfig.fontSize - 4 }]}>
+            v 2.0.0 (beta)
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -510,20 +516,31 @@ const styles = StyleSheet.create({
   setupTitle: {
     fontWeight: '700',
     marginTop: 24,
-    marginBottom: 12,
+    marginBottom: 8,
+    letterSpacing: 2,
+  },
+  setupAuthor: {
+    fontStyle: 'italic',
+    marginBottom: 8,
   },
   setupText: {
     textAlign: 'center',
-    marginBottom: 32,
   },
   setupButton: {
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
+    marginTop: 24,
   },
   setupButtonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  versionText: {
+    position: 'absolute',
+    bottom: 40,
+    textAlign: 'center',
+    fontFamily: 'monospace',
   },
   emptyContainer: {
     flex: 1,
